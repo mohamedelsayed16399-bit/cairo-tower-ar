@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>برج القاهرة</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#10122b;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;color:#fff;touch-action:manipulation}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+.ov{position:fixed;inset:0;background:rgba(10,12,30,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px;z-index:5}
+.hide{display:none}
+h1{font-size:40px;margin:0;background:linear-gradient(90deg,#ffd166,#ef476f);-webkit-background-clip:text;color:transparent}
+p{margin:0;opacity:.85;line-height:1.7;max-width:320px}
+button{font:inherit;font-weight:700;font-size:20px;border:0;border-radius:14px;padding:12px 30px;color:#fff;background:linear-gradient(135deg,#ef476f,#7b2ff7)}
+#sb{position:fixed;top:10px;left:0;right:0;text-align:center;font-size:44px;font-weight:800;pointer-events:none;text-shadow:0 2px 8px #000}
+#sub{position:fixed;top:62px;left:0;right:0;text-align:center;font-size:14px;opacity:.8;pointer-events:none}
+#snd{position:fixed;top:10px;left:10px;z-index:4;font-size:18px;padding:6px 10px;background:#ffffff22}
+</style></head><body>
+<canvas id="c"></canvas><div id="sb">0</div><div id="sub"></div><button id="snd">🔊</button>
+<div class="ov" id="menu"><h1>برج القاهرة 🏙️</h1><p>اطلع بالبرج لفوق! دوس في الوقت المظبوط عشان الدور ينزل فوق اللي تحته. اللي بيطلع برّه بيتقصّ.</p><p>3 دورات مظبوطة ورا بعض = الدور بيكبر تاني ✨</p><p id="bst"></p><button id="go">ابدأ</button></div>
+<div class="ov hide" id="over"><h1>البرج وقع!</h1><p id="res"></p><button id="again">تاني</button></div>
+<script>
+const cv=document.getElementById('c'),g=cv.getContext('2d');let W,H,DPR;
+function rs(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR}addEventListener('resize',rs);rs();
+const SV='cairo_tower_v1';let sv={best:0,snd:1};try{Object.assign(sv,JSON.parse(localStorage.getItem(SV)||'{}'))}catch(e){}
+function persist(){try{localStorage.setItem(SV,JSON.stringify(sv))}catch(e){}}
+let AC=null;function beep(f,d,t,v){if(!sv.snd)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),a=AC.createGain();o.type=t||'sine';o.frequency.value=f;a.gain.value=v||.06;a.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.connect(a);a.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
+const BH=26;let blocks,cur,dir,spd,x0,score,perfect,over,running,cam,camT,parts,falls,texts,t=0,msgT=0,maxP,W0;
+function hue(i){return (i*14+200)%360}
+function newGame(){W0=Math.min(W*.6,260);blocks=[{x:W/2-W0/2,w:W0,y:0,h:hue(0)}];score=0;perfect=0;maxP=0;over=false;cam=0;camT=0;parts=[];falls=[];texts=[];spawn();running=true;
+ document.getElementById('menu').classList.add('hide');document.getElementById('over').classList.add('hide');upd()}
+function spawn(){const top=blocks[blocks.length-1];const n=blocks.length;spd=140+Math.min(n*7,260);const gold=n%10===0&&n>0;if(gold)spd*=.6;dir=Math.random()<.5?1:-1;cur={x:dir>0?-top.w:W,w:top.w,y:n,h:hue(n),gold}}
+function upd(){document.getElementById('sb').textContent=score;document.getElementById('sub').textContent=perfect>=2?'🔥 مظبوط x'+perfect:'أعلى: '+sv.best}
+function place(){if(!running||over)return;const top=blocks[blocks.length-1];const L=Math.max(cur.x,top.x),Rr=Math.min(cur.x+cur.w,top.x+top.w);const ov=Rr-L;
+ if(ov<=0){endGame();return}
+ const diff=Math.abs(cur.x-top.x);
+ if(diff<6){cur.x=top.x;perfect++;maxP=Math.max(maxP,perfect);let w=cur.w;if(perfect>=3){w=Math.min(W0,cur.w+14);texts.push({x:cur.x+cur.w/2,y:cur.y,t:'✨ كبر!',l:1.2,c:'#ffd166'});beep(1000,.2,'triangle')}else texts.push({x:cur.x+cur.w/2,y:cur.y,t:'مظبوط!',l:1,c:'#7df'});
+  if(perfect>=3){cur.x-=(w-cur.w)/2;cur.x=Math.max(0,Math.min(W-w,cur.x));cur.w=w}
+  beep(500+perfect*60,.15,'sine',.07);for(let i=0;i<14;i++)parts.push({x:cur.x+Math.random()*cur.w,y:cur.y,vx:(Math.random()-.5)*160,vy:-Math.random()*160,l:.6})}
+ else{perfect=0;beep(260,.1,'square',.05);
+  if(cur.x<top.x){falls.push({x:cur.x,w:top.x-cur.x,y:cur.y,vy:0,h:cur.h});cur.w=ov;cur.x=top.x}else if(cur.x+cur.w>top.x+top.w){falls.push({x:top.x+top.w,w:cur.x+cur.w-(top.x+top.w),y:cur.y,vy:0,h:cur.h});cur.w=ov}}
+ blocks.push(cur);score+=cur.gold?4:1;if(cur.gold){texts.push({x:cur.x+cur.w/2,y:cur.y,t:'🌟 دور ذهبي +4',l:1.4,c:'#ffd166'});beep(1200,.3,'triangle',.08)}if(score>sv.best&&false){}upd();spawn()}
+function endGame(){over=true;running=false;falls.push({x:cur.x,w:cur.w,y:cur.y,vy:0,h:cur.h});beep(120,.5,'sawtooth',.08);const nb=score>sv.best;if(nb){sv.best=score;persist()}
+ setTimeout(()=>{document.getElementById('res').innerHTML='ارتفعت '+score+' دور 🏗️'+(nb?'<br>🏆 رقم قياسي جديد!':'<br>أعلى رقم: '+sv.best)+'<br>أحسن سلسلة مظبوطة: '+maxP;document.getElementById('over').classList.remove('hide');document.getElementById('bst').textContent=''},900)}
+function step(dt){t+=dt;if(running&&!over){cur.x+=dir*spd*dt;if(cur.x+cur.w>W+30&&dir>0)dir=-1;if(cur.x<-30&&dir<0)dir=1}
+ camT=Math.max(0,blocks.length-8);cam+=(camT-cam)*Math.min(1,dt*4);
+ for(const f of falls){f.vy+=900*dt;f.y-=0;f.fy=(f.fy||0)+f.vy*dt}
+ for(const p of parts){p.x+=p.vx*dt;p.y+=p.vy*dt/BH;p.vy+=300*dt;p.l-=dt}parts=parts.filter(p=>p.l>0);for(const q of texts)q.l-=dt;texts=texts.filter(q=>q.l>0)}
+function Y(y){return H-90-(y-cam)*BH}
+function draw(){if(W!==innerWidth||H!==innerHeight)rs();g.setTransform(DPR,0,0,DPR,0,0);const lvl=Math.min(1,blocks.length/60);
+ const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,`hsl(${230-lvl*60},60%,${12+lvl*10}%)`);gr.addColorStop(1,`hsl(${280-lvl*40},50%,${25+lvl*10}%)`);g.fillStyle=gr;g.fillRect(0,0,W,H);
+ g.fillStyle='rgba(255,255,255,.7)';for(let i=0;i<40;i++){g.fillRect((i*97)%W,(i*53+cam*4*(i%3+1))%H,1.5,1.5)}
+ g.fillStyle='#0b0d22';for(let i=0;i<8;i++){const bw=W/8,bh=40+((i*37)%70);g.fillRect(i*bw,Y(-0.3+cam*0)+0*0-bh+ (cam*BH*0.3),bw-4,bh+200)}
+ g.fillStyle='#07081a';g.fillRect(0,Y(-1)+cam*BH*0+2+0,W,H);
+ for(const b of blocks){const y=Y(b.y);g.fillStyle=b.gold?'#ffc933':`hsl(${b.h},70%,58%)`;g.fillRect(b.x,y-BH,b.w,BH-2);g.fillStyle='rgba(255,255,255,.25)';g.fillRect(b.x,y-BH,b.w,5);g.fillStyle='rgba(0,0,0,.18)';for(let k=6;k<b.w-6;k+=14)g.fillRect(b.x+k,y-BH+9,6,8)}
+ if(cur&&!over){const y=Y(cur.y);g.fillStyle=cur.gold?'#ffd84d':`hsl(${cur.h},70%,62%)`;g.fillRect(cur.x,y-BH,cur.w,BH-2);g.fillStyle='rgba(255,255,255,.3)';g.fillRect(cur.x,y-BH,cur.w,5)}
+ for(const f of falls){g.fillStyle=`hsl(${f.h},60%,50%)`;g.fillRect(f.x,Y(f.y)+(f.fy||0)-BH,f.w,BH-2)}
+ for(const p of parts){g.fillStyle='rgba(255,230,150,'+Math.max(0,p.l*1.6)+')';g.fillRect(p.x,Y(blocks.length-1)-BH+p.vy*0+ (p.y-(blocks.length-1))*BH,3,3)}
+ g.textAlign='center';g.font='700 20px system-ui';for(const q of texts){g.globalAlpha=Math.min(1,q.l);g.fillStyle=q.c;g.fillText(q.t,q.x,Y(q.y)-BH-(1.2-q.l)*40-6)}g.globalAlpha=1}
+let last=0;function loop(ts){const dt=Math.min(.05,(ts-last)/1000||.016);last=ts;step(dt);draw();requestAnimationFrame(loop)}
+addEventListener('pointerdown',e=>{if(e.target.tagName==='BUTTON')return;place()});addEventListener('keydown',e=>{if(e.code==='Space')place()});
+document.getElementById('go').onclick=()=>{newGame()};document.getElementById('again').onclick=()=>{newGame()};
+document.getElementById('snd').onclick=function(){sv.snd=sv.snd?0:1;persist();this.textContent=sv.snd?'🔊':'🔇'};
+document.getElementById('snd').textContent=sv.snd?'🔊':'🔇';document.getElementById('bst').textContent=sv.best?'🏆 أعلى رقم: '+sv.best:'';
+blocks=[{x:W/2-100,w:200,y:0,h:200}];cur=null;parts=[];falls=[];texts=[];cam=0;over=false;running=false;requestAnimationFrame(loop);
+window.__t={newGame,place,step,draw,st:()=>({blocks,cur,score,over,perfect})};
+</script></body></html>
