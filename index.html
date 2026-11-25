@@ -13,9 +13,9 @@ p{margin:0;opacity:.85;line-height:1.7;max-width:320px}
 button{font:inherit;font-weight:700;font-size:20px;border:0;border-radius:14px;padding:12px 30px;color:#fff;background:linear-gradient(135deg,#ef476f,#7b2ff7)}
 #sb{position:fixed;top:10px;left:0;right:0;text-align:center;font-size:44px;font-weight:800;pointer-events:none;text-shadow:0 2px 8px #000}
 #sub{position:fixed;top:62px;left:0;right:0;text-align:center;font-size:14px;opacity:.8;pointer-events:none}
-#snd{position:fixed;top:10px;left:10px;z-index:4;font-size:18px;padding:6px 10px;background:#ffffff22}
+#slw{position:fixed;top:10px;right:10px;z-index:4;font-size:16px;padding:8px 14px;background:linear-gradient(135deg,#06b6d4,#3b82f6)}#slw.off{opacity:.35;filter:grayscale(1)}#snd{position:fixed;top:10px;left:10px;z-index:4;font-size:18px;padding:6px 10px;background:#ffffff22}
 </style></head><body>
-<canvas id="c"></canvas><div id="sb">0</div><div id="sub"></div><button id="snd">🔊</button>
+<canvas id="c"></canvas><div id="sb">0</div><div id="sub"></div><button id="slw">🐢 <span id="sln">1</span></button><button id="snd">🔊</button>
 <div class="ov" id="menu"><h1>برج القاهرة 🏙️</h1><p>اطلع بالبرج لفوق! دوس في الوقت المظبوط عشان الدور ينزل فوق اللي تحته. اللي بيطلع برّه بيتقصّ.</p><p>3 دورات مظبوطة ورا بعض = الدور بيكبر تاني ✨</p><p id="bst"></p><button id="go">ابدأ</button></div>
 <div class="ov hide" id="over"><h1>البرج وقع!</h1><p id="res"></p><button id="again">تاني</button></div>
 <script>
@@ -24,11 +24,14 @@ function rs(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.
 const SV='cairo_tower_v1';let sv={best:0,snd:1};try{Object.assign(sv,JSON.parse(localStorage.getItem(SV)||'{}'))}catch(e){}
 function persist(){try{localStorage.setItem(SV,JSON.stringify(sv))}catch(e){}}
 let AC=null;function beep(f,d,t,v){if(!sv.snd)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),a=AC.createGain();o.type=t||'sine';o.frequency.value=f;a.gain.value=v||.06;a.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.connect(a);a.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
-const BH=26;let blocks,cur,dir,spd,x0,score,perfect,over,running,cam,camT,parts,falls,texts,t=0,msgT=0,maxP,W0;
+const BH=26;let slows=1,slowLeft=0,blocks,cur,dir,spd,x0,score,perfect,over,running,cam,camT,parts,falls,texts,t=0,msgT=0,maxP,W0;
 function hue(i){return (i*14+200)%360}
-function newGame(){W0=Math.min(W*.6,260);blocks=[{x:W/2-W0/2,w:W0,y:0,h:hue(0)}];score=0;perfect=0;maxP=0;over=false;cam=0;camT=0;parts=[];falls=[];texts=[];spawn();running=true;
+function updSl(){document.getElementById('sln').textContent=slows;document.getElementById('slw').classList.toggle('off',slows<=0&&slowLeft<=0)}
+function useSlow(){if(!running||over||slows<=0||slowLeft>0)return;slows--;slowLeft=5;if(cur)spd*=.5;texts.push({x:W/2,y:blocks.length,t:'🐢 بطيء لـ 5 أدوار',l:1.2,c:'#7ee'});updSl()}
+document.getElementById('slw').onclick=useSlow;
+function newGame(){slows=1;slowLeft=0;updSl();W0=Math.min(W*.6,260);blocks=[{x:W/2-W0/2,w:W0,y:0,h:hue(0)}];score=0;perfect=0;maxP=0;over=false;cam=0;camT=0;parts=[];falls=[];texts=[];spawn();running=true;
  document.getElementById('menu').classList.add('hide');document.getElementById('over').classList.add('hide');upd()}
-function spawn(){const top=blocks[blocks.length-1];const n=blocks.length;spd=140+Math.min(n*7,260);const gold=n%10===0&&n>0;if(gold)spd*=.6;dir=Math.random()<.5?1:-1;cur={x:dir>0?-top.w:W,w:top.w,y:n,h:hue(n),gold}}
+function spawn(){const top=blocks[blocks.length-1];const n=blocks.length;spd=140+Math.min(n*7,260);const gold=n%10===0&&n>0;if(gold)spd*=.6;if(slowLeft>0){spd*=.5;slowLeft--;updSl()}dir=Math.random()<.5?1:-1;cur={x:dir>0?-top.w:W,w:top.w,y:n,h:hue(n),gold}}
 function upd(){document.getElementById('sb').textContent=score;document.getElementById('sub').textContent=perfect>=2?'🔥 مظبوط x'+perfect:'أعلى: '+sv.best}
 function place(){if(!running||over)return;const top=blocks[blocks.length-1];const L=Math.max(cur.x,top.x),Rr=Math.min(cur.x+cur.w,top.x+top.w);const ov=Rr-L;
  if(ov<=0){endGame();return}
@@ -38,7 +41,7 @@ function place(){if(!running||over)return;const top=blocks[blocks.length-1];cons
   beep(500+perfect*60,.15,'sine',.07);for(let i=0;i<14;i++)parts.push({x:cur.x+Math.random()*cur.w,y:cur.y,vx:(Math.random()-.5)*160,vy:-Math.random()*160,l:.6})}
  else{perfect=0;beep(260,.1,'square',.05);
   if(cur.x<top.x){falls.push({x:cur.x,w:top.x-cur.x,y:cur.y,vy:0,h:cur.h});cur.w=ov;cur.x=top.x}else if(cur.x+cur.w>top.x+top.w){falls.push({x:top.x+top.w,w:cur.x+cur.w-(top.x+top.w),y:cur.y,vy:0,h:cur.h});cur.w=ov}}
- blocks.push(cur);score+=cur.gold?4:1;if(cur.gold){texts.push({x:cur.x+cur.w/2,y:cur.y,t:'🌟 دور ذهبي +4',l:1.4,c:'#ffd166'});beep(1200,.3,'triangle',.08)}if(score>sv.best&&false){}upd();spawn()}
+ blocks.push(cur);score+=cur.gold?4:1;if(blocks.length%25===0){slows++;updSl();texts.push({x:W/2,y:blocks.length,t:'🐢 +1 بطيء',l:1.2,c:'#7ee'})}if(cur.gold){texts.push({x:cur.x+cur.w/2,y:cur.y,t:'🌟 دور ذهبي +4',l:1.4,c:'#ffd166'});beep(1200,.3,'triangle',.08)}if(score>sv.best&&false){}upd();spawn()}
 function endGame(){over=true;running=false;falls.push({x:cur.x,w:cur.w,y:cur.y,vy:0,h:cur.h});beep(120,.5,'sawtooth',.08);const nb=score>sv.best;if(nb){sv.best=score;persist()}
  setTimeout(()=>{document.getElementById('res').innerHTML='ارتفعت '+score+' دور 🏗️'+(nb?'<br>🏆 رقم قياسي جديد!':'<br>أعلى رقم: '+sv.best)+'<br>أحسن سلسلة مظبوطة: '+maxP;document.getElementById('over').classList.remove('hide');document.getElementById('bst').textContent=''},900)}
 function step(dt){t+=dt;if(running&&!over){cur.x+=dir*spd*dt;if(cur.x+cur.w>W+30&&dir>0)dir=-1;if(cur.x<-30&&dir<0)dir=1}
